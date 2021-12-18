@@ -1,3 +1,5 @@
+$Region = "UAENorth"
+
 # First, we need a Key Vault
 $KVName="AKSKeyVault"+(Get-Random -Minimum 100000000 -Maximum 99999999999)
 az keyvault create --name $KVName --resource-group $RG --location $Region
@@ -25,7 +27,7 @@ kubectl get pods
 
 # To access our secrets and keys, we need a Secret Provider Class
 code secret-provide-class-dist.yaml 
-
+$Sub ="b214611b-9a79-4e7e-afb0-3d9785737f10"
 # We can automate modifying all  settings in YAML through PowerShell
 $SPC = Get-Content "secret-provide-class-dist.yaml" | ConvertFrom-YAML
 $SPC.spec.parameters.keyvaultName=$KVName
@@ -73,6 +75,7 @@ kubectl describe pod nginx-secrets-store
 kubectl exec -it nginx-secrets-store -- ls -l /mnt/secrets-store/
 
 kubectl exec -it nginx-secrets-store -- bash -c "cat /mnt/secrets-store/TestKey"
+kubectl exec -it csi-secrets-store-secrets-store-csi-driver-fzg4r -- bash -c "cat /mnt/secrets-store/TestKey"
 
 # What if we upgrade the key?
 # Currently, AKS and AKV are in sync
@@ -171,9 +174,9 @@ kubectl describe pod nginx-secrets-store
 kubectl delete pod nginx-secrets-store
 
 # Get the AKS Cluster's client ID and grant permissions to it
-az aks show -n $AKSCluster -g $RG --query identityProfile
+az aks show -n $AKSCluster -g $RG --query servicePrincipalProfile
 
-$clientId=(az aks show -n $AKSCluster -g $RG --query identityProfile.kubeletidentity.clientId -o tsv)
+$clientId=(az aks show -n $AKSCluster -g $RG --query servicePrincipalProfile.clientId -o tsv)
 
 az keyvault set-policy -n $KVName --secret-permissions get --spn $clientId
 

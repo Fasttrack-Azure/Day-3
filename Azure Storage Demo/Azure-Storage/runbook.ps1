@@ -108,19 +108,19 @@ kubectl create namespace azuredisk-maxdisks
 kubectl config set-context --current --namespace azuredisk-maxdisks
 
 # Let's create 24 PVCs and Deployments
-for ($i=1; $i -le 24; $i++) {
-$ID='{0:d2}' -f $i
-$PVCName_Old="pvc-azure-managed-disk-dynamic"
-$PVCName_New="pvc-maxdisk-$ID"
-$DeploymentName_Old="nginx-azdisk-dynamic-deployment"
-$DeploymentName_New="nginx-maxdisk-$ID"
+# for ($i=1; $i -le 24; $i++) {
+# $ID='{0:d2}' -f $i
+# $PVCName_Old="pvc-azure-managed-disk-dynamic"
+# $PVCName_New="pvc-maxdisk-$ID"
+# $DeploymentName_Old="nginx-azdisk-dynamic-deployment"
+# $DeploymentName_New="nginx-maxdisk-$ID"
 
-(Get-Content -Path .\pvc-azure-managed-disk-dynamic.yaml) -replace $PVCName_Old,$PVCName_New | Out-File -FilePath pvc-maxdisks.yaml
-(Get-Content -Path .\nginx-with-azuredisk-dynamic.yaml) -replace $PVCName_Old,$PVCName_New -replace $DeploymentName_Old,$DeploymentName_New | Out-File -FilePath deployment-maxdisks.yaml
+# (Get-Content -Path .\pvc-azure-managed-disk-dynamic.yaml) -replace $PVCName_Old,$PVCName_New | Out-File -FilePath pvc-maxdisks.yaml
+# (Get-Content -Path .\nginx-with-azuredisk-dynamic.yaml) -replace $PVCName_Old,$PVCName_New -replace $DeploymentName_Old,$DeploymentName_New | Out-File -FilePath deployment-maxdisks.yaml
 
-kubectl apply -f pvc-maxdisks.yaml
-kubectl apply -f deployment-maxdisks.yaml
-}
+# kubectl apply -f pvc-maxdisks.yaml
+# kubectl apply -f deployment-maxdisks.yaml
+# }
 
 # This also created extra disks in Azure
 Start-Process $Url
@@ -129,9 +129,9 @@ Start-Process $Url
 kubectl get pods
 kubectl get pvc 
 
-kubectl describe pvc pvc-maxdisk-24
+# kubectl describe pvc pvc-maxdisk-24
 
-kubectl describe pod (kubectl get pods -o=jsonpath='{.items[23].metadata.name}')
+# kubectl describe pod (kubectl get pods -o=jsonpath='{.items[23].metadata.name}')
 
 # If we need this many deployments, we need to scale up our cluster by increasing the nodes or by upsizing
 az aks scale --resource-group  $RG --name $AKSCluster --node-count 4 --nodepool-name nodepool1
@@ -147,7 +147,7 @@ kubectl config set-context --current --namespace azurefile-static
 
 # Create a storage account
 $azFileStorage="azfile"+(Get-Random -Minimum 100000000 -Maximum 99999999999)
-az storage account create -n $azFileStorage -g $RG -l $Region --sku Standard_LRS
+az storage account create -n $azFileStorage -g $RG -l EastUS --sku Standard_LRS
 
 # Get the connection string
 $StorageConnString=(az storage account show-connection-string -n $azFileStorage -g $RG -o tsv)
