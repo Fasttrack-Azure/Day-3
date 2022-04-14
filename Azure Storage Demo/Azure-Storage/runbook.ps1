@@ -1,6 +1,6 @@
-$RG="BCG-RG"
-$Region="UAE North"
-$AKSCluster = "bcglabaks01"
+$RG="VMware-RG"
+$Region="eastus"
+$AKSCluster = "vmwareaks01"
 
 # So far, we have 4 Storage Classes - but no Volumes or Claims
 kubectl get pv,pvc,storageclass --all-namespaces -o name
@@ -108,8 +108,10 @@ kubectl describe pod (kubectl get pods -o=jsonpath='{.items[0].metadata.name}' -
 kubectl create namespace azuredisk-maxdisks
 kubectl config set-context --current --namespace azuredisk-maxdisks
 
-# Let's create 24 PVCs and Deployments
-for ($i=1; $i -le 24; $i++) {
+
+---------DO NOT RUN----------------------------------------
+# Let's create 16 PVCs and Deployments
+for ($i=1; $i -le 16; $i++) {
 $ID='{0:d2}' -f $i
 $PVCName_Old="pvc-azure-managed-disk-dynamic"
 $PVCName_New="pvc-maxdisk-$ID"
@@ -130,7 +132,7 @@ kubectl apply -f deployment-maxdisks.yaml
 kubectl get pods
 kubectl get pvc 
 
-kubectl describe pvc pvc-maxdisk-10
+#kubectl describe pvc pvc-maxdisk-10
 
 kubectl describe pod (kubectl get pods -o=jsonpath='{.items[23].metadata.name}')
 
@@ -141,6 +143,7 @@ az aks scale --resource-group  $RG --name $AKSCluster --node-count 4 --nodepool-
 kubectl get pods
 kubectl describe pod (kubectl get pods -o=jsonpath='{.items[23].metadata.name}')
 
+--------------------------------------DO NOT RUN UNTIL HERE-----------------
 
 # Azure Files
 kubectl create namespace azurefile-static
@@ -157,13 +160,13 @@ $StorageConnString=(az storage account show-connection-string -n $azFileStorage 
 az storage share create -n aksshare --connection-string $StorageConnString
 
 # Get the storage key
-$StorageKey=(az storage account keys list --resource-group $RG --account-name $azFileStorage --query "[0].value" -o tsv)
+#$StorageKey=(az storage account keys list --resource-group $RG --account-name $azFileStorage --query "[0].value" -o tsv)
 
+$StorageKey="7obLM3pwcnk6KDPMUIYO3FYc9/eh4V3xjZ14lnk6cc0k7p6wuN6JA5cunlMR2fZpYFUOEbKtcX6m+AStVci1ug=="
 # And store it as a secret in the cluster
 kubectl create secret generic azure-secret `
         --from-literal=azurestorageaccountname=$azFileStorage `
-        --from-literal=azurestorageaccountkey=$StorageKey `
-        -n default
+        --from-literal=azurestorageaccountkey=$StorageKey
 
 # Let's deploy this as an Inlinevolume
 code nginx-with-azurefiles-stat-inline.yaml

@@ -25,4 +25,4 @@ spec:
         azureDisk:
           kind: Managed
           diskName: azure-managed-disk-aks-static
-          diskURI: /subscriptions/b214611b-9a79-4e7e-afb0-3d9785737f10/resourceGroups/MC_BCG-RG_bcglabaks01_uaenorth/providers/Microsoft.Compute/disks/azure-managed-disk-aks-static
+          diskURI: /subscriptions/b214611b-9a79-4e7e-afb0-3d9785737f10/resourceGroups/MC_VMware-RG_vmwareaks01_eastus/providers/Microsoft.Compute/disks/azure-managed-disk-aks-static
