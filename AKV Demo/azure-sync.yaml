@@ -1,0 +1,12 @@
+apiVersion: secrets-store.csi.x-k8s.io/v1
+kind: SecretProviderClass
+metadata:
+  name: azure-sync
+spec:
+  provider: azure                             
+  secretObjects:                              # [OPTIONAL] SecretObjects defines the desired state of synced Kubernetes secret objects
+  - data:
+    - key: TestKey                           # data field to populate
+      objectName: TestKey                        # name of the mounted content to sync; this could be the object name or the object alias
+    secretName: envkeys                     # name of the Kubernetes secret object
+    type: Opaque                         # type of Kubernetes secret object (for example, Opaque, kubernetes.io/tls)

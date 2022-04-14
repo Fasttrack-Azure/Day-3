@@ -1,5 +1,6 @@
-$AKSCluster = 'sidlabaks03'
-$RG = 'Intel_RG_01'
+$RG="BCG-RG"
+$Region="UAE North"
+$AKSCluster = "bcglabaks01"
 
 # So far, we have 4 Storage Classes - but no Volumes or Claims
 kubectl get pv,pvc,storageclass --all-namespaces -o name
@@ -33,7 +34,7 @@ kubectl get pv,pvc --all-namespaces
 kubectl get pods 
 
 # And has mounted the Volume - check out the volume section
-kubectl describe pod (kubectl get pods -o=jsonpath='{.items[0].metadata.name}') 
+kubectl describe pod <pod-name>
 
 # Dynamic provisioning for Azure Disks
 kubectl create namespace azuredisk-dynamic
@@ -43,7 +44,7 @@ kubectl config set-context --current --namespace azuredisk-dynamic
 code pvc-azure-managed-disk-dynamic.yaml
 kubectl apply -f pvc-azure-managed-disk-dynamic.yaml
 
-# Still no PV - but a PVC
+# Still no PV - but a PVC - no pod using it
 kubectl get pv,pvc
 
 # Now, we'll point a deployment at that PVC
@@ -58,7 +59,7 @@ kubectl get pv
 kubectl get pvc
 
 kubectl get pods 
-kubectl describe pod (kubectl get pods -o=jsonpath='{.items[0].metadata.name}')
+kubectl describe pod <pod-name>
 
 # This new disk is also visible in the portal!
 $Url = "https://portal.azure.com/#@" + $TenantName + ".onmicrosoft.com/resource" + (az group show -n $NodeRG --query id -o tsv)
@@ -75,32 +76,32 @@ kubectl get pods
 # Won't work - disks can only be attached to a single Pod!
 kubectl describe pod (kubectl get pods -o=jsonpath='{.items[0].metadata.name}' --field-selector=status.phase!=Running)
 
-# Don't forget about the retention policy!
-kubectl get storageclass managed-premium 
+# # Don't forget about the retention policy!
+# kubectl get storageclass managed-premium 
 
-code storageclass-managed-premium-retain.yaml
+# code storageclass-managed-premium-retain.yaml
 
-kubectl apply -f storageclass-managed-premium-retain.yaml
+# kubectl apply -f storageclass-managed-premium-retain.yaml
 
-kubectl get storageclass -o=custom-columns='NAME:.metadata.name,RECLAIMPOLICY:.reclaimPolicy' | grep -e managed -e NAME
+# kubectl get storageclass -o=custom-columns='NAME:.metadata.name,RECLAIMPOLICY:.reclaimPolicy' | grep -e managed -e NAME
 
-code nginx-with-azuredisk-dynamic-retain.yaml 
+# code nginx-with-azuredisk-dynamic-retain.yaml 
 
-kubectl apply -f nginx-with-azuredisk-dynamic-retain.yaml
+# kubectl apply -f nginx-with-azuredisk-dynamic-retain.yaml
 
-kubectl get pvc,pv -o name
+# kubectl get pvc,pv -o name
 
-kubectl delete deployment nginx-azdisk-dynamic-deployment         
-kubectl delete deployment nginx-azdisk-dynamic-deployment-retain   
-kubectl delete pvc pvc-azure-managed-disk-dynamic
-kubectl delete pvc pvc-azure-managed-disk-dynamic-retain
+# kubectl delete deployment nginx-azdisk-dynamic-deployment         
+# kubectl delete deployment nginx-azdisk-dynamic-deployment-retain   
+# kubectl delete pvc pvc-azure-managed-disk-dynamic
+# kubectl delete pvc pvc-azure-managed-disk-dynamic-retain
 
-kubectl get pv 
+# kubectl get pv 
 
-# Needs to be deleted manually!
-kubectl delete pv (kubectl get pv -o=jsonpath='{.items[0].metadata.name}')
+# # Needs to be deleted manually!
+# kubectl delete pv (kubectl get pv -o=jsonpath='{.items[0].metadata.name}')
 
-kubectl get pv 
+# kubectl get pv 
 
 # Also remember: We have a limit of disks per node.
 # On a default cluster, we get 3 Nodes of size DS2_v2. This would equal to 24 disks.
@@ -108,30 +109,30 @@ kubectl create namespace azuredisk-maxdisks
 kubectl config set-context --current --namespace azuredisk-maxdisks
 
 # Let's create 24 PVCs and Deployments
-# for ($i=1; $i -le 24; $i++) {
-# $ID='{0:d2}' -f $i
-# $PVCName_Old="pvc-azure-managed-disk-dynamic"
-# $PVCName_New="pvc-maxdisk-$ID"
-# $DeploymentName_Old="nginx-azdisk-dynamic-deployment"
-# $DeploymentName_New="nginx-maxdisk-$ID"
+for ($i=1; $i -le 24; $i++) {
+$ID='{0:d2}' -f $i
+$PVCName_Old="pvc-azure-managed-disk-dynamic"
+$PVCName_New="pvc-maxdisk-$ID"
+$DeploymentName_Old="nginx-azdisk-dynamic-deployment"
+$DeploymentName_New="nginx-maxdisk-$ID"
 
-# (Get-Content -Path .\pvc-azure-managed-disk-dynamic.yaml) -replace $PVCName_Old,$PVCName_New | Out-File -FilePath pvc-maxdisks.yaml
-# (Get-Content -Path .\nginx-with-azuredisk-dynamic.yaml) -replace $PVCName_Old,$PVCName_New -replace $DeploymentName_Old,$DeploymentName_New | Out-File -FilePath deployment-maxdisks.yaml
+(Get-Content -Path .\pvc-azure-managed-disk-dynamic.yaml) -replace $PVCName_Old,$PVCName_New | Out-File -FilePath pvc-maxdisks.yaml
+(Get-Content -Path .\nginx-with-azuredisk-dynamic.yaml) -replace $PVCName_Old,$PVCName_New -replace $DeploymentName_Old,$DeploymentName_New | Out-File -FilePath deployment-maxdisks.yaml
 
-# kubectl apply -f pvc-maxdisks.yaml
-# kubectl apply -f deployment-maxdisks.yaml
-# }
+kubectl apply -f pvc-maxdisks.yaml
+kubectl apply -f deployment-maxdisks.yaml
+}
 
 # This also created extra disks in Azure
-Start-Process $Url
+# Start-Process $Url
 
 # Check out the last pod and PVC
 kubectl get pods
 kubectl get pvc 
 
-# kubectl describe pvc pvc-maxdisk-24
+kubectl describe pvc pvc-maxdisk-10
 
-# kubectl describe pod (kubectl get pods -o=jsonpath='{.items[23].metadata.name}')
+kubectl describe pod (kubectl get pods -o=jsonpath='{.items[23].metadata.name}')
 
 # If we need this many deployments, we need to scale up our cluster by increasing the nodes or by upsizing
 az aks scale --resource-group  $RG --name $AKSCluster --node-count 4 --nodepool-name nodepool1
@@ -147,7 +148,7 @@ kubectl config set-context --current --namespace azurefile-static
 
 # Create a storage account
 $azFileStorage="azfile"+(Get-Random -Minimum 100000000 -Maximum 99999999999)
-az storage account create -n $azFileStorage -g $RG -l EastUS --sku Standard_LRS
+az storage account create -n $azFileStorage -g $RG -l $Region --sku Standard_LRS
 
 # Get the connection string
 $StorageConnString=(az storage account show-connection-string -n $azFileStorage -g $RG -o tsv)
