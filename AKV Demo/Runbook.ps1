@@ -1,7 +1,7 @@
 # First, we need a Key Vault
-$RG="BCG-RG"
-$Region="UAE North"
-$AKSCluster = "bcglabaks01"
+$RG="Sid-Lab-RG-01"
+$Region="EAST US"
+$AKSCluster = "aksdelta01"
 $KVName="AKSKeyVault"+(Get-Random -Minimum 100000000 -Maximum 99999999999)
 az keyvault create --name $KVName --resource-group $RG --location $Region
 
@@ -14,12 +14,12 @@ kubectl create namespace keyvault
 kubectl config set-context --current --namespace keyvault
 
 #Enable Add-on
-az aks enable-addons --addons azure-keyvault-secrets-provider --name $AKSCluster --resource-group $RG
+#az aks enable-addons --addons azure-keyvault-secrets-provider --name $AKSCluster --resource-group $RG
 
 # And the CSI Azure Provider
 kubectl apply -f https://raw.githubusercontent.com/Azure/secrets-store-csi-driver-provider-azure/master/deployment/provider-azure-installer.yaml
 
-# Install CSI Driver including auto rotation
+# Install CSI Driver including auto rotation 
 # helm repo add csi-secrets-store-provider-azure https://raw.githubusercontent.com/Azure/secrets-store-csi-driver-provider-azure/master/charts
 # helm repo update
 # helm install csi secrets-store-provider-azure/csi-secrets-store-provider-azure --set enableSecretRotation=True
@@ -45,27 +45,36 @@ Set-Content "secret-provide-class.yaml" -Value $SPC
 
 # Auth can happen through SP, VM (System/User) or Pod Identity
 # We use a Service Principal
-$SP="http://AKVAKSSPBCG"
-$SP_Key=(az ad sp create-for-rbac --skip-assignment --name $SP --query password -o tsv)
-$SP_ClientID=(az ad sp show --id $SP --query appId -o tsv) # 63c7ebc3-43c9-4243-ac7a-a58003125557
+#$SP="http://AKVAKSDELTA"
+#$SP_Key=(az ad sp create-for-rbac --skip-assignment --name $SP --query password -o tsv)
+#$SP_ClientID=(az ad sp show --id $SP --query appId -o tsv) # 63c7ebc3-43c9-4243-ac7a-a58003125557
 
 # Role Assignment for AKV
-az role assignment create --role Reader --assignee 63c7ebc3-43c9-4243-ac7a-a58003125557 --scope /subscriptions/$Sub/resourcegroups/$RG/providers/Microsoft.KeyVault/vaults/$KVName
+#az role assignment create --role Reader --assignee 63c7ebc3-43c9-4243-ac7a-a58003125557 --scope /subscriptions/$Sub/resourcegroups/$RG/providers/Microsoft.KeyVault/vaults/$KVName
 
 # Set permissions to read secrets
-az keyvault set-policy -n $KVName --secret-permissions get --spn $SP_ClientID
+#az keyvault set-policy -n $KVName --secret-permissions get --spn $SP_ClientID
 
 # Let's add Key and Cert permissions, too
-az keyvault set-policy -n $KVName --key-permissions get --spn $SP_ClientID
-az keyvault set-policy -n $KVName --certificate-permissions get --spn $SP_ClientID
+#az keyvault set-policy -n $KVName --key-permissions get --spn $SP_ClientID
+#az keyvault set-policy -n $KVName --certificate-permissions get --spn $SP_ClientID
+
+
+#To access your key vault, you can use the user-assigned managed identity that you created when you enabled a managed identity on your AKS cluster:
+az aks show -g $RG -n $AKSCluster --query addonProfiles.azureKeyvaultSecretsProvider.identity.clientId -o tsv
+
+$ClientID="381331c6-d89d-4b66-a608-49a0849feb14"
+
+#To grant your identity permissions that enable it to read your key vault and view its contents, run the following commands:
+# set policy to access keys in your key vault
+az keyvault set-policy -n $KVName --key-permissions get --spn $ClientID
+# set policy to access secrets in your key vault
+az keyvault set-policy -n $KVName --secret-permissions get --spn $ClientID
+# set policy to access certs in your key vault
+az keyvault set-policy -n $KVName --certificate-permissions get --spn $ClientID
 
 # Create the class
-kubectl apply -f secret-provide-class.yaml 
-
-# The SP needs it's credentials stored in (one single) secret (other auth types don't require that)
-$SP_ClientID="63c7ebc3-43c9-4243-ac7a-a58003125557"
-$SP_Key="a-u8Q~Pn40PJ8iaw~wHi~_MT7MTiRD7WrqKoAcLp"
-kubectl create secret generic akv-creds --from-literal clientid=$SP_ClientID --from-literal clientsecret=$SP_Key
+kubectl apply -f secretproviderclass.yaml 
 
 # Now let's deploy a Pod that access our Secret
 code nginx-secrets-store.yaml
@@ -78,7 +87,7 @@ kubectl describe pod nginx-secrets-store
 # We can see the Secret in the Pod
 kubectl exec -it nginx-secrets-store -- ls -l /mnt/secrets-store/
 
-kubectl exec -it nginx-secrets-store -- bash -c "cat /mnt/secrets-store/TestKey"
+kubectl exec -it nginx-secrets-store -- cat /mnt/secrets-store/TestKey
 
 # What if we upgrade the key?
 # Currently, AKS and AKV are in sync
