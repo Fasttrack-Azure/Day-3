@@ -1,3 +1,5 @@
+-------------------DO NOT RUN THIS SECTION------------------
+
 # First, we need a Key Vault
 $RG="Sid-Lab-RG-01"
 $Region="EAST US"
@@ -35,6 +37,13 @@ az keyvault set-policy -n $KVName --key-permissions get --spn $ClientID
 az keyvault set-policy -n $KVName --secret-permissions get --spn $ClientID
 # set policy to access certs in your key vault
 az keyvault set-policy -n $KVName --certificate-permissions get --spn $ClientID
+
+-------------------DO NOT RUN UP TO THIS POINT------------------
+
+# New Namespace
+kubectl create namespace <your-name>
+kubectl config set-context --current --namespace <your-name>
+
 
 # Create the class
 kubectl apply -f secretproviderclass.yaml 
@@ -82,10 +91,6 @@ kubectl get secretproviderclasspodstatus `
         (kubectl get secretproviderclasspodstatus -o custom-columns=":metadata.name" ) -o yaml 
 
 az keyvault secret show --name "TestKey" --vault-name $KVName --query "id"
-
-# Enable auto-rotation
-az aks update -g $RG -n $AKSCluster --enable-secret-rotation
-az aks addon update -g $RG -n $AKSCluster -a azure-keyvault-secrets-provider --enable-secret-rotation
 
 # The key has been updated!
 kubectl exec -it nginx-secrets-store -- bash -c "cat /mnt/secrets-store/TestKey"
