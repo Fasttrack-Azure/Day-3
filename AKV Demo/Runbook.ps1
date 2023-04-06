@@ -39,8 +39,7 @@ az keyvault set-policy -n $KVName --secret-permissions get --spn $ClientID
 az keyvault set-policy -n $KVName --certificate-permissions get --spn $ClientID
 
 
-# Create the class
-kubectl apply -f secretproviderclass.yaml
+
 
 -------------------DO NOT RUN UP TO THIS POINT------------------
 
@@ -48,6 +47,8 @@ kubectl apply -f secretproviderclass.yaml
 kubectl create namespace <your-name>
 kubectl config set-context --current --namespace <your-name>
  
+# Create the class
+kubectl apply -f secretproviderclass.yaml
 
 # Now let's deploy a Pod that access our Secret
 code nginx-secrets-store.yaml
