@@ -1,7 +1,7 @@
 -------------------DO NOT RUN THIS SECTION------------------
 
 # First, we need a Key Vault
-$RG="Sid-Lab-RG-01"
+$RG="Sid-RG-01"
 $Region="EAST US"
 $AKSCluster = "aksdelta01"
 $KVName="AKSKeyVault"+(Get-Random -Minimum 100000000 -Maximum 99999999999)
@@ -28,7 +28,7 @@ kubectl get pods -l app=csi-secrets-store-provider-azure
 #To access your key vault, you can use the user-assigned managed identity that you created when you enabled a managed identity on your AKS cluster:
 az aks show -g $RG -n $AKSCluster --query addonProfiles.azureKeyvaultSecretsProvider.identity.clientId -o tsv
 
-$ClientID="381331c6-d89d-4b66-a608-49a0849feb14"
+$ClientID="15df33ef-76a5-4f54-b043-80efd055e4d7"
 
 #To grant your identity permissions that enable it to read your key vault and view its contents, run the following commands:
 # set policy to access keys in your key vault
@@ -42,6 +42,11 @@ az keyvault set-policy -n $KVName --certificate-permissions get --spn $ClientID
 
 
 -------------------DO NOT RUN UP TO THIS POINT------------------
+$RG="Sid-RG-01"
+$Region="EAST US"
+$AKSCluster = "aksdelta01"
+$KVName="AKSKeyVault78973342925"
+
 
 # New Namespace
 kubectl create namespace <your-name>
@@ -116,7 +121,7 @@ code secret-provide-class-with-ENV-dist.yaml
 kubectl edit SecretProviderClass azure-kvname-user-msi
 
 # Delete and Create the Pod again
-kubectl delete pod nginx-secrets-store
+kubectl delete pod nginx-secrets-store-02
 kubectl apply -f nginx-secrets-store-with-ENV.yaml
 
 # And it's running!
